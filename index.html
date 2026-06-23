@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Binomo Pro Mobile Signal</title>
+    <!-- Tailwind CSS for Flashy Looks -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(180deg, #09061a 0%, #12092e 100%);
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        /* Rainbow Glowing Borders */
+        .rainbow-box {
+            border: 3px solid transparent;
+            background: linear-gradient(#110c26, #110c26) padding-box,
+                        linear-gradient(to right, #ff0055, #00ffcc, #ffcc00) border-box;
+        }
+        /* 3 Fire Scanning Lines */
+        .scan-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #ff4500, #ff8c00, #ff4500, transparent);
+            box-shadow: 0 0 12px #ff4500, 0 0 20px #ff8c00;
+            opacity: 0;
+            z-index: 100;
+            pointer-events: none;
+        }
+        @keyframes fireScanAnimation {
+            0% { top: 0%; opacity: 1; }
+            50% { top: 100%; opacity: 1; }
+            100% { top: 0%; opacity: 1; }
+        }
+        .scanning .scan-line:nth-child(1) { animation: fireScanAnimation 1.8s infinite ease-in-out; }
+        .scanning .scan-line:nth-child(2) { animation: fireScanAnimation 1.8s infinite ease-in-out 0.3s; }
+        .scanning .scan-line:nth-child(3) { animation: fireScanAnimation 1.8s infinite ease-in-out 0.6s; }
+
+        /* Smooth Push Notification Animation */
+        @keyframes slideDown {
+            from { transform: translateY(-120%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .notif-show { animation: slideDown 0.4s forwards; }
+    </style>
+</head>
+<body class="p-2 select-none overflow-x-hidden min-h-screen flex flex-col justify-between">
+
+    <!-- Fire Scan Overlay (3 Lines) -->
+    <div id="scanner-overlay" class="fixed inset-0 pointer-events-none hidden">
+        <div class="scan-line"></div>
+        <div class="scan-line"></div>
+        <div class="scan-line"></div>
+    </div>
+
+    <!-- Mobile Top Notification Bar -->
+    <div id="push-notification" class="fixed top-2 left-2 right-2 bg-gradient-to-r from-purple-900 to-indigo-950 border-2 border-cyan-400 rounded-xl p-3 shadow-2xl hidden z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+            <div class="flex-1">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-yellow-400 tracking-wider">BINOMO SIGNAL ALERT</span>
+                    <span class="text-[10px] text-gray-400">1m ago</span>
+                </div>
+                <p id="notification-msg" class="text-sm font-extrabold mt-0.5 text-white">Analyzing Market...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Header Area -->
+    <header class="flex justify-between items-center p-3 bg-gradient-to-r from-red-600 via-pink-600 to-yellow-500 rounded-xl shadow-lg border-b-2 border-cyan-300">
+        <h1 class="text-lg font-black tracking-tighter text-white italic animate-pulse">⚡ BINOMO ULTRA ⚡</h1>
+        <select id="market-select" class="bg-gray-950 text-yellow-400 font-bold text-xs p-1.5 rounded-lg border border-yellow-400" onchange="changeMarket()">
+            <option value="FX:EURUSD">EUR/USD (LIVE)</option>
+            <option value="FX:GBPUSD">GBP/USD (LIVE)</option>
+            <option value="FX:USDJPY">USD/JPY (LIVE)</option>
+            <option value="FX:AUDUSD">AUD/USD (LIVE)</option>
+        </select>
+    </header>
+
+    <!-- Mobile-Optimized TradingView Chart Container (Fixed to 350px width/height synchronization) -->
+    <div class="my-3 h-[350px] rounded-xl overflow-hidden border-2 border-purple-500 shadow-xl bg-gray-950">
+        <div id="tradingview_widget" class="w-full h-full"></div>
+    </div>
+
+    <!-- Control Panel: Meter & Glow Buttons -->
+    <div class="p-4 rounded-2xl rainbow-box shadow-2xl flex flex-col gap-3">
+        
+        <!-- Meter & Timer Layout -->
+        <div class="flex items-center justify-between bg-black/60 p-2 rounded-xl border border-gray-800">
+            <!-- Round Meter Display -->
+            <div class="flex items-center gap-3">
+                <div id="meter-pointer" class="w-14 h-14 rounded-full border-4 border-dashed border-yellow-400 flex items-center justify-center text-xl text-white font-black">
+                    ⏳
+                </div>
+                <div>
+                    <div id="meter-status" class="text-sm font-black text-gray-400 uppercase tracking-wide">Awaiting Scan</div>
+                    <div class="text-[10px] text-gray-500 font-bold">1 MIN STRATEGY</div>
+                </div>
+            </div>
+
+            <!-- Mini Timer Box -->
+            <div class="text-center bg-gray-900 px-3 py-1.5 rounded-lg border border-purple-500">
+                <span class="text-[9px] text-gray-400 block uppercase font-bold">VALIDITY</span>
+                <span id="timer-display" class="text-base font-mono font-bold text-purple-400">00:00</span>
+            </div>
+        </div>
+
+        <!-- Get Signal Action Button -->
+        <button id="scan-btn" onclick="startScanning()" class="w-full py-4 bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 hover:from-yellow-500 hover:to-red-600 text-white font-black text-xl rounded-xl shadow-lg transform active:scale-95 transition-all uppercase tracking-wide border border-white">
+            🚀 GET SIGNAL
+        </button>
+    </div>
+
+    <!-- Copyright Footer -->
+    <footer class="text-center text-[10px] text-gray-600 mt-2">
+        English UI Interface • Auto 1-Min Live Sync 
+    </footer>
+
+    <!-- TradingView Script Load -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript">
+        let currentWidget;
+
+        // Load Live 1-Minute Chart Function
+        function initChart(symbol) {
+            currentWidget = new TradingView.widget({
+                // Forced height calculation to lock container layout
+                "autosize": true, 
+                "symbol": symbol,
+                "interval": "1", // Hardcoded 1 min
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "enable_publishing": false,
+                "hide_side_toolbar": true, 
+                "container_id": "tradingview_widget"
+            });
+        }
+
+        // Default Initialization
+        initChart("FX:EURUSD");
+
+        function changeMarket() {
+            const market = document.getElementById('market-select').value;
+            initChart(market);
+        }
+
+        // Hindi Voice Engine 
+        function speakHindi(message) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const speech = new SpeechSynthesisUtterance(message);
+                speech.lang = 'hi-IN'; // Pure Hindi Accent
+                speech.rate = 1.0;
+                window.speechSynthesis.speak(speech);
+            }
+        }
+
+        // Full Interactive Scan Trigger
+        function startScanning() {
+            const btn = document.getElementById('scan-btn');
+            const overlay = document.getElementById('scanner-overlay');
+            const timer = document.getElementById('timer-display');
+            const pointer = document.getElementById('meter-pointer');
+            const status = document.getElementById('meter-status');
+            const notification = document.getElementById('push-notification');
+            const notifMsg = document.getElementById('notification-msg');
+
+            // Lock Screen Controls & Start 3 Line Fire Scan
+            btn.disabled = true;
+            btn.innerText = "🔥 SCANNING...";
+            overlay.classList.remove('hidden');
+            overlay.classList.add('scanning');
+
+            status.innerText = "Analyzing Candles...";
+            status.className = "text-sm font-black text-yellow-400 animate-pulse uppercase";
+            pointer.innerText = "🔄";
+            pointer.className = "w-14 h-14 rounded-full border-4 border-dashed border-yellow-400 flex items-center justify-center text-xl animate-spin";
+
+            let count = 4; // 4-second intense deep scanning loop
+            timer.innerText = `00:04`;
+
+            const runTimer = setInterval(() => {
+                count--;
+                timer.innerText = `00:0${count}`;
+
+                if (count <= 0) {
+                    clearInterval(runTimer);
+
+                    // Stop Layout Animations
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('scanning');
+                    btn.disabled = false;
+                    btn.innerText = "🚀 GET SIGNAL";
+                    timer.innerText = "01:00"; // Fixed 1 min countdown indicator
+
+                    // Random Signal Algorithm (Up/Down)
+                    const signalResult = Math.random() > 0.5;
+                    let directionText, voiceAlert, neonStyle, textGlow;
+
+                    if (signalResult) {
+                        directionText = "UP SIDE";
+                        voiceAlert = "Up side trade lijiye";
+                        neonStyle = "text-green-500 border-green-500 shadow-[0_0_15px_#00ff00]";
+                        textGlow = "text-green-400 font-black text-lg uppercase tracking-wider";
+                    } else {
+                        directionText = "DOWN SIDE";
+                        voiceAlert = "Down side trade lijiye";
+                        neonStyle = "text-red-500 border-red-500 shadow-[0_0_15px_#ff0000]";
+                        textGlow = "text-red-500 font-black text-lg uppercase tracking-wider";
+                    }
+
+                    // Update UI Dashboard Meter
+                    pointer.innerText = signalResult ? "▲" : "▼";
+                    pointer.className = `w-14 h-14 rounded-full border-4 flex items-center justify-center text-2xl font-black ${neonStyle}`;
+                    status.innerText = directionText;
+                    status.className = textGlow;
+
+                    // Trigger Hindi Text-To-Speech
+                    speakHindi(voiceAlert);
+
+                    // Trigger Mobile Push Notification Box
+                    notifMsg.innerText = `1-Min Alert: Take an ${directionText} Trade!`;
+                    notification.classList.remove('hidden');
+                    notification.classList.add('notif-show');
+
+                    // Auto-hide push text message after 5 seconds
+                    setTimeout(() => {
+                        notification.classList.add('hidden');
+                        notification.classList.remove('notif-show');
+                    }, 5000);
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+  </html>
+  
